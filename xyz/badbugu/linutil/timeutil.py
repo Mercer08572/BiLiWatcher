@@ -44,16 +44,31 @@ def get_date_by_num( year:int, month:int, day:int):
     return '%d-%s-%s'%(year, month, day)
 
 
-def date_diff(begin: str, end: str):
+def date_diff(begin: str, end: str, style='default'):
+    """两个时间差，默认返回格式：0:00:00
+    :param begin : 起始时间
+    :param end : 结束时间
+    :return timedelta类型的数据，可使用total_seconds转换成秒
+    """
     begin_date = datetime.datetime.strptime(begin, '%Y-%m-%d %H:%M:%S')
     end_date = datetime.datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
-    result_date = end_date - begin_date
+    diff_time = end_date - begin_date
+    if style == 'default':
+        result_date = diff_time
+    else:
+        result_date = (diff_time.total_seconds())
+
     return result_date
 
 
 def date_add_and_sub(date: str, ymd: str, add_sub: str, number: int):
     addend = None
     now_date = datetime.datetime.strptime(get_now_date(), '%Y-%m-%d')
+    if date is None:
+        date = now_date
+    else:
+        date = datetime.datetime.strptime(date, '%Y-%m-%d')
+
     # 判断闰年
     is_run = 0
     now_year = get_now_year()
@@ -87,9 +102,9 @@ def date_add_and_sub(date: str, ymd: str, add_sub: str, number: int):
 
     result_date = None
     if add_sub == 'add':
-        result_date = addend + now_date
+        result_date = addend + date
     elif add_sub == 'sub':
-        result_date = now_date - addend
+        result_date = date - addend
 
     return result_date
 

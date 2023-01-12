@@ -34,6 +34,7 @@ def report_option():
         print("8. up主粉丝增长率排名（三个月）")
         print("9. up主粉丝增长率排名（六个月）")
         print("10. up主粉丝增长率排名（一年）")
+        print("11. up主粉丝增长率排名（初始）")
         print('q. quit')
         print("############################报表############################")
         report_choose = input("请选择:")
@@ -57,24 +58,27 @@ def report_option():
             print('############################观察列表############################')
             print('  %10s  %20s  %20s  %20s  %20s  %25s  %20s ' % ('uid', '名字', '性别', '等级', '发布视频数', '开始观测时间', '观测次数'))
             for each in report_rs.data:
-                mid = each[0]
-                name = each[1]
-                sex = each[2]
-                if sex == 1:
-                    sex = '男'
-                elif sex == 0:
-                    sex = '女'
-                else:
-                    sex = '未知'
-                level = each[3]
-                video_number = each[4]
-                begin_watch_date = each[5]
-                watch_times = each[6]
+                try:
+                    mid = each[0]
+                    name = each[1]
+                    sex = each[2]
+                    if sex == 1:
+                        sex = '男'
+                    elif sex == 0:
+                        sex = '女'
+                    else:
+                        sex = '未知'
+                    level = each[3]
+                    video_number = each[4]
+                    begin_watch_date = each[5]
+                    watch_times = each[6]
 
-                print('||%10s||%20s||%20s||%20s||%20s||%25s||%20s '
-                      % (mid, name, sex, level, video_number,
-                         timeutil.change_datetime_to_str(begin_watch_date),
-                         watch_times))
+                    print('||%10s||%20s||%20s||%20s||%20s||%25s||%20s '
+                          % (mid, name, sex, level, video_number,
+                             timeutil.change_datetime_to_str(begin_watch_date),
+                             watch_times))
+                except AttributeError as e:
+                    print(e)
 
         elif report_choose_to_int == 2:
             report_sql = 'select ' \
@@ -107,7 +111,7 @@ def report_option():
                          'order by fans_rate1 desc'
             report_rs = dmlUitl.query_sql(report_sql)
             print('############################增长率排名（一天）############################')
-            print('%-20s%-s%+20s%+20suid' % ('名字', '粉丝数', '一天前粉丝数', '增长率'))
+            print('%-20s%-s%+20s%+20s' % ('名字', '粉丝数', '一天前粉丝数', '增长率'))
             for each in report_rs.data:
                 mid = each[0]
                 name = each[1]
@@ -115,7 +119,7 @@ def report_option():
                 fans_one = each[3]
                 fans_rate1 = each[4]
 
-                print('%-20s%-s%+20s%+20s%+20s' % (mid, name, fans_now, fans_one, fans_rate1))
+                print('%-20s%-s%+20s%+20s%+20s%%' % (mid, name, fans_now, fans_one, fans_rate1))
 
         elif report_choose_to_int == 4:
             report_sql = 'select ' \
@@ -130,7 +134,7 @@ def report_option():
             report_rs = dmlUitl.query_sql(report_sql)
             print('############################增长率排名（三天）############################')
             # print('uid\t名字\t粉丝数\t三天前粉丝数')
-            print('%-20s%-s%+20s%+20suid' % ('名字', '粉丝数', '三天前粉丝数', '增长率'))
+            print('%-20s%-s%+20s%+20s' % ('名字', '粉丝数', '三天前粉丝数', '增长率'))
             for each in report_rs.data:
                 mid = each[0]
                 name = each[1]
@@ -139,7 +143,7 @@ def report_option():
                 fans_rate2 = each[4]
 
                 # print('%s\t%s\t%s\t%s\t' % (mid, name, fans_now, fans_three))
-                print('%-20s%-s%+20s%+20s%+20s' % (mid, name, fans_now, fans_three, fans_rate2))
+                print('%-20s%-s%+20s%+20s%+20s%%' % (mid, name, fans_now, fans_three, fans_rate2))
 
         elif report_choose_to_int == 5:
             report_sql = 'select ' \
@@ -154,7 +158,7 @@ def report_option():
             report_rs = dmlUitl.query_sql(report_sql)
             print('############################增长率排名（七天）############################')
             # print('uid\t名字\t粉丝数\t七天前粉丝数')
-            print('%-20s%-s%+20s%+20suid' % ('名字', '粉丝数', '七天前粉丝数', '增长率'))
+            print('%-20s%-s%+20s%+20s' % ('名字', '粉丝数', '七天前粉丝数', '增长率'))
             for each in report_rs.data:
                 mid = each[0]
                 name = each[1]
@@ -163,7 +167,7 @@ def report_option():
                 fans_rate3 = each[4]
 
                 # print('%s\t%s\t%s\t%s\t' % (mid, name, fans_now, fans_seven))
-                print('%-20s%-s%+20s%+20s%+20s' % (mid, name, fans_now, fans_seven, fans_rate3))
+                print('%-20s%-s%+20s%+20s%+20s%%' % (mid, name, fans_now, fans_seven, fans_rate3))
 
         elif report_choose_to_int == 6:
             report_sql = 'select ' \
@@ -178,7 +182,7 @@ def report_option():
             report_rs = dmlUitl.query_sql(report_sql)
             print('############################增长率排名（十五天）############################')
             # print('uid\t名字\t粉丝数\t十五天前粉丝数')
-            print('%-20s%-s%+20s%+20suid' % ('名字', '粉丝数', '十五天前粉丝数', '增长率'))
+            print('%-20s%-s%+20s%+20s' % ('名字', '粉丝数', '十五天前粉丝数', '增长率'))
             for each in report_rs.data:
                 mid = each[0]
                 name = each[1]
@@ -187,7 +191,7 @@ def report_option():
                 fans_rate4 = each[4]
 
                 # print('%s\t%s\t%s\t%s\t' % (mid, name, fans_now, fans_fifteen))
-                print('%-20s%-s%+20s%+20s%+20s' % (mid, name, fans_now, fans_fifteen, fans_rate4))
+                print('%-20s%-s%+20s%+20s%+20s%%' % (mid, name, fans_now, fans_fifteen, fans_rate4))
 
         elif report_choose_to_int == 7:
             report_sql = 'select ' \
@@ -202,7 +206,7 @@ def report_option():
             report_rs = dmlUitl.query_sql(report_sql)
             print('############################增长率排名（一个月）############################')
             # print('uid\t名字\t粉丝数\t一个月前粉丝数')
-            print('%-20s%-s%+20s%+20suid' % ('名字', '粉丝数', '一个月前粉丝数', '增长率'))
+            print('%-20s%-s%+20s%+20s' % ('名字', '粉丝数', '一个月前粉丝数', '增长率'))
             for each in report_rs.data:
                 mid = each[0]
                 name = each[1]
@@ -211,7 +215,7 @@ def report_option():
                 fans_rate5 = each[4]
 
                 # print('%s\t%s\t%s\t%s\t' % (mid, name, fans_now, fans_one_m))
-                print('%-20s%-s%+20s%+20s%+20s' % (mid, name, fans_now, fans_one_m, fans_rate5))
+                print('%-20s%-s%+20s%+20s%+20s%%' % (mid, name, fans_now, fans_one_m, fans_rate5))
 
         elif report_choose_to_int == 8:
             report_sql = 'select ' \
@@ -226,7 +230,7 @@ def report_option():
             report_rs = dmlUitl.query_sql(report_sql)
             print('############################增长率排名（三个月）############################')
             # print('uid\t名字\t粉丝数\t三个月前粉丝数')
-            print('%-20s%-s%+20s%+20suid' % ('名字', '粉丝数', '三个月前粉丝数', '增长率'))
+            print('%-20s%-s%+20s%+20s' % ('名字', '粉丝数', '三个月前粉丝数', '增长率'))
             for each in report_rs.data:
                 mid = each[0]
                 name = each[1]
@@ -235,7 +239,7 @@ def report_option():
                 fans_rate6 = each[4]
 
                 # print('%s\t%s\t%s\t%s\t' % (mid, name, fans_now, fans_three_m))
-                print('%-20s%-s%+20s%+20s%+20s' % (mid, name, fans_now, fans_three_m, fans_rate6))
+                print('%-20s%-s%+20s%+20s%+20s%%' % (mid, name, fans_now, fans_three_m, fans_rate6))
 
         elif report_choose_to_int == 9:
             report_sql = 'select ' \
@@ -250,7 +254,7 @@ def report_option():
             report_rs = dmlUitl.query_sql(report_sql)
             print('############################增长率排名（六个月）############################')
             # print('uid\t名字\t粉丝数\t六个月前粉丝数')
-            print('%-20s%-s%+20s%+20suid' % ('名字', '粉丝数', '六个月前粉丝数', '增长率'))
+            print('%-20s%-s%+20s%+20s' % ('名字', '粉丝数', '六个月前粉丝数', '增长率'))
             for each in report_rs.data:
                 mid = each[0]
                 name = each[1]
@@ -259,7 +263,7 @@ def report_option():
                 fans_rate7 = each[4]
 
                 # print('%s\t%s\t%s\t%s\t' % (mid, name, fans_now, fans_six_m))
-                print('%-20s%-s%+20s%+20s%+20s' % (mid, name, fans_now, fans_six_m, fans_rate7))
+                print('%-20s%-s%+20s%+20s%+20s%%' % (mid, name, fans_now, fans_six_m, fans_rate7))
 
         elif report_choose_to_int == 10:
             report_sql = 'select ' \
@@ -274,7 +278,7 @@ def report_option():
             report_rs = dmlUitl.query_sql(report_sql)
             print('############################增长率排名（一年）############################')
             # print('uid\t名字\t粉丝数\t一年前粉丝数')
-            print('%-20s%-s%+20s%+20suid' % ('名字', '粉丝数', '一年前粉丝数', '增长率'))
+            print('%-20s%-s%+20s%+20s' % ('名字', '粉丝数', '一年前粉丝数', '增长率'))
             for each in report_rs.data:
                 mid = each[0]
                 name = each[1]
@@ -283,7 +287,38 @@ def report_option():
                 fans_rate8 = each[4]
 
                 # print('%s\t%s\t%s\t%s\t' % (mid, name, fans_now, fans_one_y))
-                print('%-20s%-s%+20s%+20s%+20s' % (mid, name, fans_now, fans_one_y, fans_rate8))
+                print('%-20s%-s%+20s%+20s%+20s%%' % (mid, name, fans_now, fans_one_y, fans_rate8))
+
+        elif report_choose_to_int == 11:
+            report_sql = 'SELECT ' \
+                         'trend.mid,' \
+                         'list.`name`,' \
+                         'trend.fans_now,' \
+                         'trend.fans_compare_begin,' \
+                         'trend.fans_rate9,' \
+                         'record.watch_date ' \
+                         'FROM blw_upfanstrend AS trend ' \
+                         'LEFT JOIN ' \
+                         '(SELECT mid,' \
+                         'watch_date ' \
+                         'FROM blw_upfansrecord GROUP BY mid HAVING MIN(watch_date)) AS record ' \
+                         'ON trend.mid=record.mid ' \
+                         'LEFT JOIN (select mid, `name` FROM blw_watchlist) AS list ON trend.mid = list.mid ' \
+                         'ORDER BY trend.fans_rate9 DESC;'
+            report_rs = dmlUitl.query_sql(report_sql)
+            print('############################增长率排名（初始）############################')
+            print('  %10s  %20s  %20s  %20s  %20s  %25s ' % ('uid', '名字', '粉丝数', '初始粉丝数', '增长率', '初始时间'))
+            for each in report_rs.data:
+                mid = each[0]
+                name = each[1]
+                fans_now = each[2]
+                fans_compare_begin = each[3]
+                fans_rate9 = each[4]
+                watch_date_first = each[5]
+
+                print('  %10s  %20s  %20s  %20s  %20s%%  %25s'
+                      % (mid, name, fans_now, fans_compare_begin, fans_rate9,
+                         watch_date_first))
 
         else:
             print('输入有误')

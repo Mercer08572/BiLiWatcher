@@ -23,11 +23,13 @@ class Biliapi:
     # 获取up个人信息
     GET_UP_INFO_URL = 'https://api.bilibili.com/x/space/acc/info'
 
-    # https://api.bilibili.com/x/space/arc/search?mid=562197&pn=1&ps=25&index=1&jsonp=jsonp
+    # https://api.bilibili.com/x/space/arc/search?mid=562197&pn=1&ps=25&index=1&jsonp=jsonp  过期API
+    # https://api.bilibili.com/x/space/wbi/arc/search?mid=559186307&ps=30&tid=0&pn=1&keyword=&order=pubdate&order_avoided=true 获取up主视频数也可以使用这个aip
     # 获取up主视频数
-    GET_UP_VIDEO_NUMBER_URL = 'https://api.bilibili.com/x/space/arc/search'
+    GET_UP_VIDEO_NUMBER_URL = 'https://api.bilibili.com/x/space/wbi/arc/search'
 
     # https://api.bilibili.com/x/space/arc/search?mid=562197&ps=30&tid=0&pn=1&keyword=&order=pubdate&jsonp=jsonp
+    # https://api.bilibili.com/x/space/wbi/arc/search?mid=559186307&ps=30&tid=0&pn=1&keyword=&order=pubdate&order_avoided=true
     #获取up主channel
     GET_UP_CHANNEL_URL = 'https://api.bilibili.com/x/space/arc/search'
 
@@ -93,7 +95,7 @@ class Biliapi:
     def get_up_video_number(self, uid: int):
         payload = {}
 
-        url = '%s?mid=%d&pn=1&ps=25&index=1&jsonp=jsonp' % (self.GET_UP_VIDEO_NUMBER_URL, uid)
+        url = '%s?mid=%d&ps=30&tid=0&pn=1&keyword=&order=pubdate&order_avoided=true' % (self.GET_UP_VIDEO_NUMBER_URL, uid)
         # url = '%s?mid=%d' % (self.GET_UP_VIDEO_NUMBER_URL, uid)
         self.logger.info('调用B站API_get_up_info,请求地址为：%s' % url)
         response = requests.request("GET", url, headers=self.HEADERS, data=payload)
