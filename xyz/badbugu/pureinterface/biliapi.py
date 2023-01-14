@@ -97,7 +97,7 @@ class Biliapi:
 
         url = '%s?mid=%d&ps=30&tid=0&pn=1&keyword=&order=pubdate&order_avoided=true' % (self.GET_UP_VIDEO_NUMBER_URL, uid)
         # url = '%s?mid=%d' % (self.GET_UP_VIDEO_NUMBER_URL, uid)
-        self.logger.info('调用B站API_get_up_info,请求地址为：%s' % url)
+        self.logger.info('调用B站API_get_up_video_number,请求地址为：%s' % url)
         response = requests.request("GET", url, headers=self.HEADERS, data=payload)
 
         re_response_text = response.text

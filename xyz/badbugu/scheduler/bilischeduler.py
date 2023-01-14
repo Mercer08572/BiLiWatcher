@@ -49,7 +49,7 @@ class BiliScheduler:
                 # 记录日志
                 watch_begin_time = timeutil.get_now_datetime()
                 self.logger.info('————[%d/%d]三表处理【Beginning...】：%s 。' % ((j+1), each_watch_count, watch_begin_time))
-                print('————[%d/%d]三表处理【Beginning...】：%s 。' % ((j+1), each_watch_count, watch_begin_time))
+                # print('————[%d/%d]三表处理【Beginning...】：%s 。' % ((j+1), each_watch_count, watch_begin_time))
 
                 uid_from_database = result_set.data[j][0]
 
@@ -57,24 +57,25 @@ class BiliScheduler:
                 watchlist_deal_begin_time = timeutil.get_now_datetime()
                 self.logger.info('————————list表处理【Beginning...】：%s 。' % watchlist_deal_begin_time)
 
-                '''查询是否有watch_date为今天的记录存在于record表中,如果有，check_rs_flag != 0 ，不再进行数据更新'''
+                ''' 更新watchlist表的第一步 查询是否有watch_date为今天的记录存在于record表中,如果有，check_rs_flag != 0 ，不再进行数据更新'''
                 check_rs_flag = self.check_list_by_record_fun(uid_from_database)
 
                 # STEP 2 更新blw_watchlist表
                 if check_rs_flag == 0:
+                    '''更新watchlist表主方法'''
                     flag1 = self.update_watchlist_fun(uid_from_database)
                 else:
                     flag1 = 'OK'
                 # flag1 : watchlist表是否更新成功
 
-                '''记录日志'''
+                # 记录日志
                 watchlist_deal_end_time = timeutil.get_now_datetime()
                 watchlist_deal_diff_time = timeutil.date_diff(watchlist_deal_begin_time, watchlist_deal_end_time)
                 self.logger.info('————————list表处理【Done】耗时：%s s。' % watchlist_deal_diff_time.total_seconds())
                 # print('————————list表处理【Done】耗时：%s 。' % watchlist_deal_diff_time)
 
                 # step3 获取用户的粉丝信息 添加信息到 upfansrecord, 更新upfanstrend表
-                '''记录日志'''
+                # 记录日志
                 record_deal_begin_time = timeutil.get_now_datetime()
                 self.logger.info('————————record表处理【Beginning...】：%s 。' % record_deal_begin_time)
 
@@ -84,6 +85,7 @@ class BiliScheduler:
                     json_fans = json.loads(response_fans)
                     fans = (json_fans.get('data').get('follower'))
 
+                    '''record表中没有今天的数据，插入record表中数据'''
                     flag2 = self.insert_record_fun(uid_from_database, fans)
                     # flag2 : record表是否成功插入
                 else:
@@ -96,20 +98,18 @@ class BiliScheduler:
 
                     flag2 = "OK"
 
-                '''记录日志'''
+                # 记录日志
                 record_deal_end_time = timeutil.get_now_datetime()
                 record_deal_diff_time = timeutil.date_diff(record_deal_begin_time, record_deal_end_time)
                 self.logger.info('————————record表处理【Done】耗时：%s s。' % record_deal_diff_time.total_seconds())
                 # print('————————record表处理【Done】耗时：%s 。' % record_deal_diff_time)
 
-                '''记录日志：trend表处理耗时'''
+                # 记录日志：trend表处理耗时
                 trend_deal_begin_time = timeutil.get_now_datetime()
                 self.logger.info('————————trend表处理【Beginning...】：%s 。' % trend_deal_begin_time)
 
                 if (flag1 == 'OK') and (flag2 == 'OK'):
                     '''只有flag1 和 flag2 同时为 ok时，才可进行粉丝趋势表的操作 '''
-                    '''记录日志：trend表处理耗时'''
-
                     self.update_or_insert_trend_fun(uid_from_database, fans)  # 对trend表进行操作，更新和插入。
                 else:
                     self.logger.info('————————flag1与flag2并非同时为OK，跳过trend表的更新。')
@@ -123,35 +123,39 @@ class BiliScheduler:
 
                 watch_end_time = timeutil.get_now_datetime()
                 watch_diff_time = timeutil.date_diff(watch_begin_time, watch_end_time)
-                self.logger.info('————[%d/%d]三表处理【Done】耗时：[(%s//%s//%s)//%s]; [%.2f%%, %.2f%%, %.2f%%] 。'
-                      % ((j+1),
-                         each_watch_count,
-                         watchlist_deal_diff_time,
-                         record_deal_diff_time,
-                         trend_deal_diff_time,
-                         watch_diff_time,
-                         (watchlist_deal_diff_time/watch_diff_time)*100,
-                         (record_deal_diff_time/watch_diff_time)*100,
-                         (trend_deal_diff_time/watch_diff_time)*100,)
-                      )
-                print('————[%d/%d]三表处理【Done】耗时：[(%s/%s/%s)/%s]; [%.2f%%, %.2f%%, %.2f%%] 。'
-                      % ((j+1),
-                         each_watch_count,
-                         watchlist_deal_diff_time,
-                         record_deal_diff_time,
-                         trend_deal_diff_time,
-                         watch_diff_time,
-                         (watchlist_deal_diff_time/watch_diff_time)*100,
-                         (record_deal_diff_time/watch_diff_time)*100,
-                         (trend_deal_diff_time/watch_diff_time)*100,)
-                      )
+                if watch_diff_time.total_seconds() == 0.0:
+                    self.logger.info('————[%d/%d]三表处理【Done】耗时 0s 。' % ((j+1), each_watch_count))
+                    print('————[%d/%d]三表处理结束【Done】耗时 0s 。' % ((j+1), each_watch_count))
+                else:
+                    self.logger.info('————[%d/%d]三表处理【Done】耗时：[(%s/%s/%s)/%s]; [%.2f%%, %.2f%%, %.2f%%] 。'
+                          % ((j+1),
+                             each_watch_count,
+                             watchlist_deal_diff_time.total_seconds(),
+                             record_deal_diff_time.total_seconds(),
+                             trend_deal_diff_time.total_seconds(),
+                             watch_diff_time.total_seconds(),
+                             (watchlist_deal_diff_time/watch_diff_time)*100,
+                             (record_deal_diff_time/watch_diff_time)*100,
+                             (trend_deal_diff_time/watch_diff_time)*100,)
+                          )
+                    print('————[%d/%d]三表处理【Done】耗时：[(%s/%s/%s)/%s]; [%.2f%%, %.2f%%, %.2f%%] 。'
+                          % ((j+1),
+                             each_watch_count,
+                             watchlist_deal_diff_time.total_seconds(),
+                             record_deal_diff_time.total_seconds(),
+                             trend_deal_diff_time.total_seconds(),
+                             watch_diff_time.total_seconds(),
+                             (watchlist_deal_diff_time/watch_diff_time)*100,
+                             (record_deal_diff_time/watch_diff_time)*100,
+                             (trend_deal_diff_time/watch_diff_time)*100,)
+                          )
 
             # 批量执行sql
             '''不能批量放在循环外批量执行，第三张表strend需要用到前两张表的数据，如果放在循环外批量执行sql，则循环内处理第三张表会出现问题'''
             # dmlutil.batch_do_sql(update_sql)  # 更新 blw_watchlist 表
             # dmlutil.batch_do_sql(insert_sql_record) # 在 blw_upfansrecord 表中添加粉丝记录
 
-            '''记录日志'''
+            # 记录日志
             loop_10_end = timeutil.get_now_datetime()
             self.logger.info('第[%d/%d]次循环【Done】耗时：%s 。' % ((i + 1), loop_count, timeutil.date_diff(loop_10_begin, loop_10_end)))
             print('第[%d/%d]次循环【Done】耗时：%s 。' % ((i + 1), loop_count, timeutil.date_diff(loop_10_begin, loop_10_end)))
@@ -285,7 +289,7 @@ class BiliScheduler:
                                      "values(%d, %d, '%s')" % (uid_from_database, fans, timeutil.get_now_date())
             # insert_sql_record.append(each_insert_record_sql)
             upfansrecord_insert_rs = self.dmlutil.do_sql(each_insert_record_sql)
-            '''flag2'''
+            # flag2
             flag2 = upfansrecord_insert_rs.data  # flag2 是blw_upfansrecord表是否插入成功的标识
         except Exception as e:
             self.logger.error("出现异常： %s 。\n 异常出现行数： %s 。" % (str(e), e.__traceback__.tb_lineno))
