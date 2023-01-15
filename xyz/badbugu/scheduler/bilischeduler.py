@@ -85,6 +85,8 @@ class BiliScheduler:
                     json_fans = json.loads(response_fans)
                     fans = (json_fans.get('data').get('follower'))
 
+                    self.logger.info('调用B站API:get_up_fans返回结果解析：uid: %s, fans: %s' % (uid_from_database, fans))
+
                     '''record表中没有今天的数据，插入record表中数据'''
                     flag2 = self.insert_record_fun(uid_from_database, fans)
                     # flag2 : record表是否成功插入
@@ -245,7 +247,7 @@ class BiliScheduler:
             else:
                 school = None
 
-            # 获取up主粉丝数
+            # 获取up主视频数
             response_vn = self.biliapi.get_up_video_number(uid_from_database)
             # print(vn)
             json_vn = json.loads(response_vn)
@@ -254,6 +256,17 @@ class BiliScheduler:
             # 预测up主频道
             tid_count_list, max_tid = self.forecast_up_channel(json_vn)
 
+            self.logger.info('调用B站API:get_up_video_number返回结果解析：'
+                             'uid: %s, '
+                             '姓名: %s, '
+                             '性别: %s, '
+                             '生日: %s, '
+                             '学校: %s, '
+                             '等级: %s, '
+                             '称号: %s, '
+                             '视频数: %s, '
+                             '主要频道: %s'
+                             % (uid_from_database, name, sex, birthday, school, level, official_title, vn, max_tid))
             # 拼装成update语句存入 update_sql 中
             # 观察日期
             each_update_sql = "update blw_watchlist set name = '%s', sex = %d, birthday = '%s', school = '%s', " \

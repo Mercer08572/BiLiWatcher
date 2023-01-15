@@ -70,7 +70,8 @@ class Biliapi:
         # print(response.text)
 
         re_response_text = response.text
-        self.logger.info("调用B站API，返回报文为：%s" % re_response_text)
+        # self.logger.info("调用B站API，返回报文为：%s" % re_response_text)
+
         # print(type(re_response_text))
         # re_response_text = re_response_text.encode('GBK')
         # re_response_text = re_response_text.decode('utf-8')
@@ -86,7 +87,8 @@ class Biliapi:
         response = requests.request("GET", url, headers=self.HEADERS, data=payload)
 
         re_response_text = response.text
-        self.logger.info("调用B站API，返回报文为：%s" % re_response_text)
+        # self.logger.info("调用B站API，返回报文为：%s" % re_response_text)
+
         # print(re_response_text)
         # re_response_text = re_response_text.encode('gbk').decode('utf-8')
 
@@ -101,7 +103,7 @@ class Biliapi:
         response = requests.request("GET", url, headers=self.HEADERS, data=payload)
 
         re_response_text = response.text
-        self.logger.info("调用B站API，返回报文为：%s" % re_response_text)
+        # self.logger.info("调用B站API，返回报文为：%s" % re_response_text)
 
         return re_response_text
 
@@ -113,6 +115,6 @@ class Biliapi:
         response = requests.request("GET", url, headers=self.HEADERS, data=payload)
 
         re_response_text = response.text
-        self.logger.info("调用B站API，返回报文为：%s" % re_response_text)
+        # self.logger.info("调用B站API，返回报文为：%s" % re_response_text)
 
         return re_response_text
