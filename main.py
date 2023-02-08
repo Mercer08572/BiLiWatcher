@@ -2,14 +2,9 @@
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-import base64
-import json
-from bs4 import BeautifulSoup
 
 from xyz.badbugu.dbtool.dmlutil import DmlUtil
-from xyz.badbugu.htmldownloader.downloadutil import DownloadUtil
 from xyz.badbugu.linutil import timeutil
-from xyz.badbugu.pureinterface.biliapi import Biliapi
 from xyz.badbugu.scheduler.bilischeduler import BiliScheduler
 
 
@@ -336,13 +331,13 @@ if __name__ == '__main__':
         print('1.添加up主信息')
         print('2.开始爬取')
         print('3.报表')
-        print('4.exit')
+        print('q.quit')
         choose = input('请选择：')
         if choose == '1':
             while True:
-                mid = input('请输入up主mid(输入e退出)：')
+                mid = input('请输入up主mid(输入q退出)：')
 
-                if mid == 'e':
+                if mid == 'q':
                     break
                     
                 # 查询表中是否有该uid
