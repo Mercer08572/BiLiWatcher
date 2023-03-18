@@ -65,8 +65,11 @@ class Biliapi:
         # print('%s?vmid=%d&jsonp=jsonp'%(self.GAT_UP_FANS_URL, uid))
         # response = request.Request("GET", self.GAT_UP_FANS_URL, headers=headers, data=payload)
         self.logger.info('调用B站API_get_up_fans,请求地址为：%s' % url)
-        response = requests.request("GET", url, headers=self.HEADERS, data=payload)
-
+        try:
+            response = requests.request("GET", url, headers=self.HEADERS, data=payload)
+        except Exception as e:
+            self.logger.error(f'出现异常：{str(e)}。出现行数：{e.__traceback__.tb_lineno}。')
+            
         # print(response.text)
 
         re_response_text = response.text
@@ -84,8 +87,11 @@ class Biliapi:
         url = '%s?mid=%d&jsonp=jsonp' % (self.GET_UP_INFO_URL, uid)
         # print(url)
         self.logger.info('调用B站API_get_up_info,请求地址为：%s' % url)
-        response = requests.request("GET", url, headers=self.HEADERS, data=payload)
-
+        try:
+            response = requests.request("GET", url, headers=self.HEADERS, data=payload)
+        except Exception as e :
+            self.logger.error(f'出现异常：{str(e)}。出现行数：{e.__traceback__.tb_lineno}。')
+            
         re_response_text = response.text
         # self.logger.info("调用B站API，返回报文为：%s" % re_response_text)
 
@@ -100,7 +106,11 @@ class Biliapi:
         url = '%s?mid=%d&ps=30&tid=0&pn=1&keyword=&order=pubdate&order_avoided=true' % (self.GET_UP_VIDEO_NUMBER_URL, uid)
         # url = '%s?mid=%d' % (self.GET_UP_VIDEO_NUMBER_URL, uid)
         self.logger.info('调用B站API_get_up_video_number,请求地址为：%s' % url)
-        response = requests.request("GET", url, headers=self.HEADERS, data=payload)
+        try:
+            response = requests.request("GET", url, headers=self.HEADERS, data=payload)
+        except Exception as e:
+            self.logger.error(f'出现异常：{str(e)}。出现行数：{e.__traceback__.tb_lineno}。')
+            
 
         re_response_text = response.text
         # self.logger.info("调用B站API，返回报文为：%s" % re_response_text)
@@ -112,7 +122,11 @@ class Biliapi:
 
         url = '%s?mid=%d&ps=30&tid=0&pn=1&keyword=&order=pubdate&jsonp=jsonp' % (self.GET_UP_CHANNEL_URL, uid)
         self.logger.info('调用B站API_get_up_channel,请求地址为：%s' % url)
-        response = requests.request("GET", url, headers=self.HEADERS, data=payload)
+        try:
+            response = requests.request("GET", url, headers=self.HEADERS, data=payload)
+        except Exception as e :
+            self.logger.error(f'出现异常：{str(e)}。出现行数：{e.__traceback__.tb_lineno}。')
+
 
         re_response_text = response.text
         # self.logger.info("调用B站API，返回报文为：%s" % re_response_text)

@@ -213,11 +213,12 @@ class BiliScheduler:
         更新判断，减少数据库操作次数，节约资源。"""
 
         # 应该有一个异常处理
+        # try:
+
+        # 调用接口获取up主信息 主要信息包括，name, sex, level, official_title, birthday, school
+        response_text = self.biliapi.get_up_info(uid_from_database)
+
         try:
-
-            # 调用接口获取up主信息 主要信息包括，name, sex, level, official_title, birthday, school
-            response_text = self.biliapi.get_up_info(uid_from_database)
-
             json_response_text = json.loads(response_text)
             # print(type(json_response_text))
             data = json_response_text.get('data')
@@ -246,44 +247,48 @@ class BiliScheduler:
                 school = school.get("name")
             else:
                 school = None
+        except Exception as e:
+            self.logger.error(f'出现异常：{str(e)}。\n 出现位置：{e.__traceback__.tb_lineno}。\n 报文：{response_text}。')
 
-            # 获取up主视频数
-            response_vn = self.biliapi.get_up_video_number(uid_from_database)
-            # print(vn)
+        # 获取up主视频数
+        response_vn = self.biliapi.get_up_video_number(uid_from_database)
+        # print(vn)
+        try:
             json_vn = json.loads(response_vn)
             vn = (json_vn.get('data').get('page').get('count'))
-
             # 预测up主频道
             tid_count_list, max_tid = self.forecast_up_channel(json_vn)
-
-            self.logger.info('调用B站API:get_up_video_number返回结果解析：'
-                             'uid: %s, '
-                             '姓名: %s, '
-                             '性别: %s, '
-                             '生日: %s, '
-                             '学校: %s, '
-                             '等级: %s, '
-                             '称号: %s, '
-                             '视频数: %s, '
-                             '主要频道: %s'
-                             % (uid_from_database, name, sex, birthday, school, level, official_title, vn, max_tid))
-            # 拼装成update语句存入 update_sql 中
-            # 观察日期
-            each_update_sql = "update blw_watchlist set name = '%s', sex = %d, birthday = '%s', school = '%s', " \
-                              "level = %d, title = '%s', video_number = %d, " \
-                              "channels = '%s', channel = %d, " \
-                              "begin_watch_date = '%s' " \
-                              "where mid = %s" % (name, sex, birthday, school, level, official_title,
-                                                  vn, tid_count_list, max_tid,
-                                                  timeutil.get_now_datetime(), uid_from_database)
-            # update_sql.append(each_update_sql)
-            watchlist_update_rs = self.dmlutil.do_sql(each_update_sql)
-            '''flag1'''
-            flag1 = watchlist_update_rs.data  # flag1 是blw_watchlist表是否插入成功的标识
-
         except Exception as e:
-            self.logger.error("出现异常： %s 。\n 异常出现行数： %s 。" % (str(e), e.__traceback__.tb_lineno))
-            flag1 = 'NOTOK'
+            self.logger.error(f'出现异常：{str(e)}。\n 出现位置：{e.__traceback__.tb_lineno}。\n 报文：{response_vn}。')
+
+        self.logger.info('调用B站API:get_up_video_number返回结果解析：'
+                            'uid: %s, '
+                            '姓名: %s, '
+                            '性别: %s, '
+                            '生日: %s, '
+                            '学校: %s, '
+                            '等级: %s, '
+                            '称号: %s, '
+                            '视频数: %s, '
+                            '主要频道: %s'
+                            % (uid_from_database, name, sex, birthday, school, level, official_title, vn, max_tid))
+        # 拼装成update语句存入 update_sql 中
+        # 观察日期
+        each_update_sql = "update blw_watchlist set name = '%s', sex = %d, birthday = '%s', school = '%s', " \
+                            "level = %d, title = '%s', video_number = %d, " \
+                            "channels = '%s', channel = %d, " \
+                            "begin_watch_date = '%s' " \
+                            "where mid = %s" % (name, sex, birthday, school, level, official_title,
+                                                vn, tid_count_list, max_tid,
+                                                timeutil.get_now_datetime(), uid_from_database)
+        # update_sql.append(each_update_sql)
+        watchlist_update_rs = self.dmlutil.do_sql(each_update_sql)
+        '''flag1'''
+        flag1 = watchlist_update_rs.data  # flag1 是blw_watchlist表是否插入成功的标识
+
+        # except Exception as e:
+        #     self.logger.error("出现异常： %s 。\n 异常出现行数： %s 。\n " % (str(e), e.__traceback__.tb_lineno))
+        #     flag1 = 'NOTOK'
 
         # 此处try结束
         return flag1
