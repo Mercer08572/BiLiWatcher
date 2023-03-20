@@ -40,7 +40,7 @@ class BiliScheduler:
             print('第[%d/%d]次循环【Beginning...】：%s 。' % ((i + 1), loop_count, loop_10_begin))
 
             # 第一次获取前10位数, 第二次获取11到20  从blw_watchlist表中获取10位up主的mid
-            query_sql = 'select mid from blw_watchlist ORDER BY watch_id ASC LIMIT %d,10' % (i * 10)
+            query_sql = 'select mid from blw_watchlist WHERE account_status = 1 ORDER BY watch_id ASC LIMIT %d,10' % (i * 10)
             # 执行sql语句，获取用户uid
             result_set = self.dmlutil.query_sql(query_sql)
             each_watch_count = (len(result_set.data))
@@ -57,7 +57,7 @@ class BiliScheduler:
                 watchlist_deal_begin_time = timeutil.get_now_datetime()
                 self.logger.info('————————list表处理【Beginning...】：%s 。' % watchlist_deal_begin_time)
 
-                ''' 更新watchlist表的第一步 查询是否有watch_date为今天的记录存在于record表中,如果有，check_rs_flag != 0 ，不再进行数据更新'''
+                ''' 查询是否有watch_date为今天的记录存在于record表中,如果有,check_rs_flag != 0 ,说明今天的粉丝数已经爬取过了,则跳过对list表的处理'''
                 check_rs_flag = self.check_list_by_record_fun(uid_from_database)
 
                 # STEP 2 更新blw_watchlist表
@@ -172,30 +172,45 @@ class BiliScheduler:
     def forecast_up_channel(self, json_channel_response):
         # channel_response = self.biliapi.get_up_channel(uid)
         # json_channel_response = json.loads(channel_response)
-        tlist = json_channel_response.get('data').get('list').get('tlist')
+        # tlist = json_channel_response.get('data').get('list').get('tlist')
+
         insert_blw_channel_sql_list = []
         max_tid = None
         max_count = 0
         tid_count_list = []
-        for i in tlist.values():
 
-            tid = i.get('tid')
-            count = i.get('count')
-            tid_count_list.append({tid: count})  # 将tid添加到up主的tidlist中
-            tname = i.get('name')
+        data_dict = json_channel_response.get('data')
+        if data_dict is not None and len(data_dict) > 0:
+            list_dict = data_dict.get('list')
+            if list_dict is not None and len(list_dict) > 0:
+                tlist_dict = list_dict.get('tlist')
+                if tlist_dict is not None and len(tlist_dict) > 0 :
 
-            # 获取投稿最多的频道
-            if max_count < count:
-                max_count = count
-                max_tid = tid
+                    for i in tlist_dict.values():
 
-            # 查询blw_channel表中是否有该频道的信息,如果有，则忽略，如果没有，则添加
-            query_is_exist_channel_sql = 'select count(tid) from blw_channel where tid = %d' % tid
-            is_exist_channel_rs = self.dmlutil.query_sql(query_is_exist_channel_sql)
-            if is_exist_channel_rs.data[0][0] == 0:
-                insert_blw_channel_sql_list.append("insert into blw_channel(tid,tname) values (%d, '%s')"
-                                                   % (tid, tname))
-        self.dmlutil.batch_do_sql(insert_blw_channel_sql_list)
+                        tid = i.get('tid')
+                        count = i.get('count')
+                        tid_count_list.append({tid: count})  # 将tid添加到up主的tidlist中
+                        tname = i.get('name')
+
+                        # 获取投稿最多的频道
+                        if max_count < count:
+                            max_count = count
+                            max_tid = tid
+
+                        # 查询blw_channel表中是否有该频道的信息,如果有，则忽略，如果没有，则添加
+                        query_is_exist_channel_sql = 'select count(tid) from blw_channel where tid = %d' % tid
+                        is_exist_channel_rs = self.dmlutil.query_sql(query_is_exist_channel_sql)
+                        if is_exist_channel_rs.data[0][0] == 0:
+                            insert_blw_channel_sql_list.append("insert into blw_channel(tid,tname) values (%d, '%s')"
+                                                            % (tid, tname))
+                    self.dmlutil.batch_do_sql(insert_blw_channel_sql_list)
+                else:
+                    self.logger.warning(f'B站api:get_video_number报文tlist字段出错.\n返回报文:{json_channel_response}')
+            else:
+                self.logger.warning(f'B站api:get_video_number报文list字段出错.\n返回报文:{json_channel_response}')
+        else:
+            self.logger.warning(f'B站api:get_video_number报文data字段出错.\n返回报文:{json_channel_response}')
 
         return tid_count_list, max_tid
 
@@ -214,58 +229,99 @@ class BiliScheduler:
 
         # 应该有一个异常处理
         # try:
-        except_flag1=1
-        except_flag2=1
+        update_flag1=1
+        update_flag2=1
+
+        # list 表更新逻辑  七天更新一次
+        # step1 查询list表中的 last_watch_date (但注意，这是一个datetime类型)
+        get_list_lwd_sql_str = f'SELECT last_watch_date FROM blw_watchlist WHERE mid = {uid_from_database}'
+        last_watch_date_time = self.dmlutil.query_sql(get_list_lwd_sql_str).data[0][0]  # 获取到的类型就为datatime.datetime类型
+
+        # step2 查看 last_watch_date 对应的是周几,如果是周一,则进行更新list表.
+        weekday = timeutil.get_week_by_date_or_datetime(last_watch_date_time)
+        if weekday != 0:    #因为程序是每天凌晨0点30分运行的，所以默认周一获取的是一周的数据
+            return 'OK'
 
         # 调用接口获取up主信息 主要信息包括，name, sex, level, official_title, birthday, school
         response_text = self.biliapi.get_up_info(uid_from_database)
 
         try:
-            json_response_text = json.loads(response_text)
-            # print(type(json_response_text))
-            data = json_response_text.get('data')
-            # print(type(data))
-            # data = json.loads(data)
-            name = data.get('name')
-            name = name.replace(u'\xd8', u'')
+            if response_text is not None and len(response_text) > 0:
+                json_response_text = json.loads(response_text)
+                # print(type(json_response_text))
+                data = json_response_text.get('data')
+                # print(type(data))
+                # data = json.loads(data)
+                if data is not None and len(data) > 0:
+                    name = data.get('name')
+                    name = name.replace(u'\xd8', u'')
 
-            sex = data.get('sex')
-            if sex == '男':
-                sex = 1
-            elif sex == '女':
-                sex = 0
+                    sex = data.get('sex')
+                    if sex == '男':
+                        sex = 1
+                    elif sex == '女':
+                        sex = 0
+                    else:
+                        sex = 3  # 未知
+
+                    level = data.get('level')
+
+                    official_title = data.get('official').get('title')
+                    official_title = official_title.replace(u'\xa0', u'')
+
+                    birthday = data.get('birthday')
+
+                    school = data.get('school')
+                    if school is not None:
+                        school = school.get("name")
+                    else:
+                        school = None
+                else:
+                    self.logger.warning(f'B站api:get_up_info报文data字段出错.\n返回报文为:{response_vn}')
+                    update_flag1 = 0
             else:
-                sex = 3  # 未知
+                self.logger.warning(f'B站api:get_up_info报文出错.\n返回报文为:{response_vn}')
+                update_flag1 = 0
 
-            level = data.get('level')
-
-            official_title = data.get('official').get('title')
-            official_title = official_title.replace(u'\xa0', u'')
-
-            birthday = data.get('birthday')
-
-            school = data.get('school')
-            if school is not None:
-                school = school.get("name")
-            else:
-                school = None
         except Exception as e:
             self.logger.error(f'出现异常：{str(e)}。\n 出现位置：{e.__traceback__.tb_lineno}。\n 报文：{response_text}。')
-            except_flag1 = 0
+            update_flag1 = 0
 
-        # 获取up主视频数
+        # 获取up主最新的视频数
         response_vn = self.biliapi.get_up_video_number(uid_from_database)
         # print(vn)
         try:
-            json_vn = json.loads(response_vn)
-            vn = (json_vn.get('data').get('page').get('count'))
-            # 预测up主频道
-            tid_count_list, max_tid = self.forecast_up_channel(json_vn)
+            vn = None
+            if response_vn is not None and len(response_vn) > 0:
+                json_vn = json.loads(response_vn)
+                data_dict = json_vn.get('data')
+
+                if data_dict is not None and len(data_dict) > 0:
+                    page_dict = data_dict.get('page')
+                    
+                    if page_dict is not None and len(page_dict) > 0:
+                        vn = page_dict.get('count')
+                    else:
+                        self.logger.warning(f'B站api:get_up_video_number报文page字段出错.\n返回报文为:{response_vn}')
+                else:
+                    self.logger.warning(f'B站api:get_up_video_number报文data字段出错.\n返回报文为:{response_vn}')
+
+                # vn = (json_vn.get('data').get('page').get('count'))
+                # 预测up主频道
+                tid_count_list, max_tid = self.forecast_up_channel(json_vn)
+            else:
+                self.logger.warning(f'B站api:get_up_video_number返回报文出错.\n返回报文为:{response_vn}')
+                update_flag2 = 0
         except Exception as e:
             self.logger.error(f'出现异常：{str(e)}。\n 出现位置：{e.__traceback__.tb_lineno}。\n 报文：{response_vn}。')
-            except_flag2 = 0
+            update_flag2 = 0
             
-        if except_flag1 == 1 and except_flag2 == 1:
+        if update_flag1 == 1 and update_flag2 == 1:
+
+            # 获取数据库中up主的视频数
+            get_video_number_from_database_sql_str = f'SELECT video_number FROM blw_watchlist WHERE mid = {uid_from_database}'
+            last_up_video = self.dmlutil.query_sql(get_video_number_from_database_sql_str).data[0][0]
+
             self.logger.info('调用B站API:get_up_video_number返回结果解析：'
                                 'uid: %s, '
                                 '姓名: %s, '
@@ -280,24 +336,20 @@ class BiliScheduler:
             # 拼装成update语句存入 update_sql 中
             # 观察日期
             each_update_sql = "update blw_watchlist set name = '%s', sex = %d, birthday = '%s', school = '%s', " \
-                                "level = %d, title = '%s', video_number = %d, " \
+                                "level = %d, title = '%s', video_number = %d, last_up_video = %d" \
                                 "channels = '%s', channel = %d, " \
-                                "begin_watch_date = '%s' " \
+                                "last_watch_date = '%s' " \
                                 "where mid = %s" % (name, sex, birthday, school, level, official_title,
-                                                    vn, tid_count_list, max_tid,
+                                                    vn, last_up_video, tid_count_list, max_tid,
                                                     timeutil.get_now_datetime(), uid_from_database)
             # update_sql.append(each_update_sql)
             watchlist_update_rs = self.dmlutil.do_sql(each_update_sql)
             '''flag1'''
             flag1 = watchlist_update_rs.data  # flag1 是blw_watchlist表是否插入成功的标识
         else:
+            self.logger.warning(f'数据解析出现问题,跳过对blw_watchlist表的更新.')
             flag1 = 'NOTOK'
 
-        # except Exception as e:
-        #     self.logger.error("出现异常： %s 。\n 异常出现行数： %s 。\n " % (str(e), e.__traceback__.tb_lineno))
-        #     flag1 = 'NOTOK'
-
-        # 此处try结束
         return flag1
 
     def check_list_by_record_fun(self, uid_from_database):
@@ -356,49 +408,49 @@ class BiliScheduler:
                     fand_fans_rate_sql_list.append("select fans_number from blw_upfansrecord "
                                                    "where watch_date = '%s' and mid = %d"
                                                    % (timeutil.date_add_and_sub(timeutil.get_now_date(),
-                                                                                'd', 'sub', 1),
+                                                                                'd', -1),
                                                       uid_from_database))
                     # 三天前
                     fand_fans_rate_sql_list.append("select fans_number from blw_upfansrecord "
                                                    "where watch_date = '%s' and mid = %d"
                                                    % (timeutil.date_add_and_sub(timeutil.get_now_date(),
-                                                                                'd', 'sub', 3),
+                                                                                'd', -3),
                                                       uid_from_database))
                     # 七天前
                     fand_fans_rate_sql_list.append("select fans_number from blw_upfansrecord "
                                                    "where watch_date = '%s' and mid = %d"
                                                    % (timeutil.date_add_and_sub(timeutil.get_now_date(),
-                                                                                'd', 'sub', 7),
+                                                                                'd', -7),
                                                       uid_from_database))
                     # 十五天前
                     fand_fans_rate_sql_list.append("select fans_number from blw_upfansrecord "
                                                    "where watch_date = '%s' and mid = %d"
                                                    % (timeutil.date_add_and_sub(timeutil.get_now_date(),
-                                                                                'd', 'sub', 15),
+                                                                                'd', -15),
                                                       uid_from_database))
                     # 一个月前
                     fand_fans_rate_sql_list.append("select fans_number from blw_upfansrecord "
                                                    "where watch_date = '%s' and mid = %d"
                                                    % (timeutil.date_add_and_sub(timeutil.get_now_date(),
-                                                                                'm', 'sub', 1),
+                                                                                'm', -1),
                                                       uid_from_database))
                     # 三个月前
                     fand_fans_rate_sql_list.append("select fans_number from blw_upfansrecord "
                                                    "where watch_date = '%s' and mid = %d"
                                                    % (timeutil.date_add_and_sub(timeutil.get_now_date(),
-                                                                                'm', 'sub', 3),
+                                                                                'm', -3),
                                                       uid_from_database))
                     # 六个月前
                     fand_fans_rate_sql_list.append("select fans_number from blw_upfansrecord "
                                                    "where watch_date = '%s' and mid = %d"
                                                    % (timeutil.date_add_and_sub(timeutil.get_now_date(),
-                                                                                'm', 'sub', 6),
+                                                                                'm', -6),
                                                       uid_from_database))
                     # 一年前
                     fand_fans_rate_sql_list.append("select fans_number from blw_upfansrecord "
                                                    "where watch_date = '%s' and mid = %d"
                                                    % (timeutil.date_add_and_sub(timeutil.get_now_date(),
-                                                                                'y', 'sub', 1),
+                                                                                'y', -1),
                                                       uid_from_database))
                     # 本次fans和第一次fans对比
                     fand_fans_rate_sql_list.append("select fans_number from blw_upfansrecord where "

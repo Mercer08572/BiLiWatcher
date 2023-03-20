@@ -61,13 +61,21 @@ def date_diff(begin: str, end: str, style='default'):
     return result_date
 
 
-def date_add_and_sub(date: str, ymd: str, add_sub: str, number: int):
+def date_add_and_sub(date: str, ymd: str, number: int):
+    '''
+    对日期进行加减运算
+    param date   : 基数日期,如果传入None则为当前日期
+    param ymd    : 操作指示符 'y' 表示 年份加减. 'm' 月. 'd' 日.
+    param number : 操作数,正数表示加,负数表示减
+    '''
     addend = None
     now_date = datetime.datetime.strptime(get_now_date(), '%Y-%m-%d')
     if date is None:
         date = now_date
     else:
         date = datetime.datetime.strptime(date, '%Y-%m-%d')
+
+    number_abs = abs(number)
 
     # 判断闰年
     is_run = 0
@@ -80,30 +88,30 @@ def date_add_and_sub(date: str, ymd: str, add_sub: str, number: int):
 
     if ymd == 'y':
         if is_run:
-            addend = datetime.timedelta(days=(366*number))
+            addend = datetime.timedelta(days=(366*number_abs))
         else:
-            addend = datetime.timedelta(days=(365*number))
+            addend = datetime.timedelta(days=(365*number_abs))
 
     if ymd == 'm':
         now_month = get_now_month()
         if ((now_month == 1) | (now_month == 3) | (now_month == 5) | (now_month == 7) |
                 (now_month == 8) | (now_month == 10) | (now_month == 12)):
-            addend = datetime.timedelta(days=(31*number))
+            addend = datetime.timedelta(days=(31*number_abs))
         elif now_month == 2:
             if is_run:
-                addend = datetime.timedelta(days=(29 * number))
+                addend = datetime.timedelta(days=(29 * number_abs))
             else:
-                addend = datetime.timedelta(days=(28 * number))
+                addend = datetime.timedelta(days=(28 * number_abs))
         else:
-            addend = datetime.timedelta(days=(30*number))
+            addend = datetime.timedelta(days=(30*number_abs))
 
     if ymd == 'd':
-        addend = datetime.timedelta(days=number)
+        addend = datetime.timedelta(days=number_abs)
 
     result_date = None
-    if add_sub == 'add':
+    if number > 0:
         result_date = addend + date
-    elif add_sub == 'sub':
+    elif number < 0 :
         result_date = date - addend
 
     return result_date
@@ -121,3 +129,15 @@ def change_date_to_str(d):
     return_str = d.strftime('%Y-%m-%d')
     # return_str = time.strftime('%Y-%m-%d', d)
     return return_str
+
+def change_str_to_datetime(datetime_str:str):
+    return datetime.datetime.strptime(datetime_str,'%Y-%m-%d %H:%M:%S')
+
+def change_str_to_date(date_str:str):
+    return datetime.datetime.strptime(date_str,'%Y-%m-%d')
+
+def get_week_by_date_or_datetime(date_or_datetime:datetime.datetime):
+    '''
+    return  :  0-6 代表 周一到周日
+    '''
+    return date_or_datetime.weekday()
