@@ -234,13 +234,19 @@ class BiliScheduler:
 
         # list 表更新逻辑  七天更新一次
         # step1 查询list表中的 last_watch_date (但注意，这是一个datetime类型)
-        get_list_lwd_sql_str = f'SELECT last_watch_date FROM blw_watchlist WHERE mid = {uid_from_database}'
-        last_watch_date_time = self.dmlutil.query_sql(get_list_lwd_sql_str).data[0][0]  # 获取到的类型就为datatime.datetime类型
+        # get_list_lwd_sql_str = f'SELECT last_watch_date FROM blw_watchlist WHERE mid = {uid_from_database}'
+        # last_watch_date_time = self.dmlutil.query_sql(get_list_lwd_sql_str).data[0][0]  # 获取到的类型就为datatime.datetime类型
 
         # step2 查看 last_watch_date 对应的是周几,如果是周一,则进行更新list表.
-        weekday = timeutil.get_week_by_date_or_datetime(last_watch_date_time)
-        if weekday != 0:    #因为程序是每天凌晨0点30分运行的，所以默认周一获取的是一周的数据
-            return 'OK'
+        # if last_watch_date_time is not None and len(last_watch_date_time) > 0:
+        #     weekday = timeutil.get_week_by_date_or_datetime(last_watch_date_time)
+        #     if weekday != 0:    #因为程序是每天凌晨0点30分运行的，所以默认周一获取的是一周的数据
+        #         return 'OK'
+
+        weekday = timeutil.get_week_by_date_or_datetime(None)
+        if weekday != 0:
+            return 'OK'  # 跳过下面更新watchlist表的代码，直接默认watchlist更新成功。
+        
 
         # 调用接口获取up主信息 主要信息包括，name, sex, level, official_title, birthday, school
         response_text = self.biliapi.get_up_info(uid_from_database)
@@ -249,35 +255,46 @@ class BiliScheduler:
             if response_text is not None and len(response_text) > 0:
                 json_response_text = json.loads(response_text)
                 # print(type(json_response_text))
-                data = json_response_text.get('data')
-                # print(type(data))
-                # data = json.loads(data)
-                if data is not None and len(data) > 0:
-                    name = data.get('name')
-                    name = name.replace(u'\xd8', u'')
 
-                    sex = data.get('sex')
-                    if sex == '男':
-                        sex = 1
-                    elif sex == '女':
-                        sex = 0
+                # 判断code,如果code是-404则说明该账号被注销。 若code是0则说明是正常账号或被ban账号
+                code = json_response_text.get('code')
+                if code is not None and code == 0:
+
+                    data = json_response_text.get('data')
+                    # print(type(data))
+                    # data = json.loads(data)
+                    if data is not None and len(data) > 0:
+                        name = data.get('name')
+                        name = name.replace(u'\xd8', u'')
+
+                        sex = data.get('sex')
+                        if sex == '男':
+                            sex = 1
+                        elif sex == '女':
+                            sex = 0
+                        else:
+                            sex = 3  # 未知
+
+                        level = data.get('level')
+
+                        official_title = data.get('official').get('title')
+                        official_title = official_title.replace(u'\xa0', u'')
+
+                        birthday = data.get('birthday')
+
+                        school = data.get('school')
+                        if school is not None:
+                            school = school.get("name")
+                        else:
+                            school = None
                     else:
-                        sex = 3  # 未知
-
-                    level = data.get('level')
-
-                    official_title = data.get('official').get('title')
-                    official_title = official_title.replace(u'\xa0', u'')
-
-                    birthday = data.get('birthday')
-
-                    school = data.get('school')
-                    if school is not None:
-                        school = school.get("name")
-                    else:
-                        school = None
+                        self.logger.warning(f'B站api:get_up_info报文data字段出错.\n返回报文为:{response_vn}')
+                        update_flag1 = 0
                 else:
-                    self.logger.warning(f'B站api:get_up_info报文data字段出错.\n返回报文为:{response_vn}')
+                    # 将账号的account_status 更新为0
+                    update_account_status_sql = f'UPDATE blw_watchlist SET account_status = 0 WHERE mid = {uid_from_database}'
+                    self.dmlutil.do_sql(update_account_status_sql)
+                    self.logger.warning(f'此账号可能被注销.\n返回报文为:{response_vn}')
                     update_flag1 = 0
             else:
                 self.logger.warning(f'B站api:get_up_info报文出错.\n返回报文为:{response_vn}')
@@ -287,34 +304,37 @@ class BiliScheduler:
             self.logger.error(f'出现异常：{str(e)}。\n 出现位置：{e.__traceback__.tb_lineno}。\n 报文：{response_text}。')
             update_flag1 = 0
 
-        # 获取up主最新的视频数
-        response_vn = self.biliapi.get_up_video_number(uid_from_database)
-        # print(vn)
-        try:
-            vn = None
-            if response_vn is not None and len(response_vn) > 0:
-                json_vn = json.loads(response_vn)
-                data_dict = json_vn.get('data')
+        if update_flag1 == 1:
 
-                if data_dict is not None and len(data_dict) > 0:
-                    page_dict = data_dict.get('page')
-                    
-                    if page_dict is not None and len(page_dict) > 0:
-                        vn = page_dict.get('count')
+            # 获取up主最新的视频数
+            response_vn = self.biliapi.get_up_video_number(uid_from_database)
+            # print(vn)
+            try:
+                vn = None
+                if response_vn is not None and len(response_vn) > 0:
+                    json_vn = json.loads(response_vn)
+                    data_dict = json_vn.get('data')
+
+                    if data_dict is not None and len(data_dict) > 0:
+                        page_dict = data_dict.get('page')
+                        
+                        if page_dict is not None and len(page_dict) > 0:
+                            vn = page_dict.get('count')
+                        else:
+                            self.logger.warning(f'B站api:get_up_video_number报文page字段出错.\n返回报文为:{response_vn}')
                     else:
-                        self.logger.warning(f'B站api:get_up_video_number报文page字段出错.\n返回报文为:{response_vn}')
-                else:
-                    self.logger.warning(f'B站api:get_up_video_number报文data字段出错.\n返回报文为:{response_vn}')
+                        self.logger.warning(f'B站api:get_up_video_number报文data字段出错.\n返回报文为:{response_vn}')
 
-                # vn = (json_vn.get('data').get('page').get('count'))
-                # 预测up主频道
-                tid_count_list, max_tid = self.forecast_up_channel(json_vn)
-            else:
-                self.logger.warning(f'B站api:get_up_video_number返回报文出错.\n返回报文为:{response_vn}')
+                    # vn = (json_vn.get('data').get('page').get('count'))
+                    # 预测up主频道
+                    tid_count_list, max_tid = self.forecast_up_channel(json_vn)
+                else:
+                    self.logger.warning(f'B站api:get_up_video_number返回报文出错.\n返回报文为:{response_vn}')
+                    update_flag2 = 0
+            except Exception as e:
+                self.logger.error(f'出现异常：{str(e)}。\n 出现位置：{e.__traceback__.tb_lineno}。\n 报文：{response_vn}。')
                 update_flag2 = 0
-        except Exception as e:
-            self.logger.error(f'出现异常：{str(e)}。\n 出现位置：{e.__traceback__.tb_lineno}。\n 报文：{response_vn}。')
-            update_flag2 = 0
+
             
         if update_flag1 == 1 and update_flag2 == 1:
 
@@ -336,7 +356,7 @@ class BiliScheduler:
             # 拼装成update语句存入 update_sql 中
             # 观察日期
             each_update_sql = "update blw_watchlist set name = '%s', sex = %d, birthday = '%s', school = '%s', " \
-                                "level = %d, title = '%s', video_number = %d, last_up_video = %d" \
+                                "level = %d, title = '%s', video_number = %d, last_up_video = %d, " \
                                 "channels = '%s', channel = %d, " \
                                 "last_watch_date = '%s' " \
                                 "where mid = %s" % (name, sex, birthday, school, level, official_title,

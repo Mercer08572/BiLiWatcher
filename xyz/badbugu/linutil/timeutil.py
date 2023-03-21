@@ -140,4 +140,7 @@ def get_week_by_date_or_datetime(date_or_datetime:datetime.datetime):
     '''
     return  :  0-6 代表 周一到周日
     '''
-    return date_or_datetime.weekday()
+    if date_or_datetime is None:
+        return datetime.datetime.now().weekday()
+    else:
+        return date_or_datetime.weekday()
