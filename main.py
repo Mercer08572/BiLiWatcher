@@ -347,8 +347,10 @@ if __name__ == '__main__':
                     print('up主已经添加过了！')
                     continue
 
-                insert_watchlist_sql = "insert into blw_watchlist(mid, add_date) values (%d, '%s')" \
-                                       % (int(mid), timeutil.get_now_date())
+                description = input('请输入up描述：')
+
+                insert_watchlist_sql = "insert into blw_watchlist(mid, add_date, description) values (%d, '%s', '%s')" \
+                                       % (int(mid), timeutil.get_now_date(), description)
                 rs = DmlUtil().do_sql(insert_watchlist_sql)
                 if rs.data == 'OK':
                     print('插入成功！')
